@@ -1,6 +1,11 @@
 const { User } = require("../models/userModel");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const gravatar = require("gravatar");
+const path = require("path");
+const Jimp = require("jimp");
+const dotenv = require("dotenv");
+dotenv.config();
 
 const login = async (req, res) => {
   const { email, password } = req.body;
@@ -30,16 +35,18 @@ const logout = async (req, res) => {
 
 const register = async (req, res) => {
   const { email, password } = req.body;
+  const avatarURL = gravatar.url(email, { s: "100", r: "x", d: "retro" }, true);
   const user = await User.findOne({ email });
   if (user) {
     return res.status(409).json({ message: "Email is already in use" });
   }
-  const newUser = new User({ email, password });
+  const newUser = new User({ email, password, avatarURL });
   await newUser.save();
   return res.status(201).json({
     user: {
       email: newUser.email,
       subscription: newUser.subscription,
+      url: newUser.avatarURL,
     },
   });
 };
@@ -69,10 +76,38 @@ const updateSubscriptionUser = async (req, res) => {
     .json({ user: user.email, subscription: user.subscription });
 };
 
+const updateAvatar = async (req, res, next) => {
+  const { _id } = req.user;
+  const { filename } = req.file;
+  const tmpPath = path.resolve(__dirname, "../tmp", filename);
+  const publicPath = path.resolve(__dirname, "../public/avatars", filename);
+
+  await Jimp.read(tmpPath)
+    .then((img) => {
+      return img.resize(250, 250).write(publicPath);
+    })
+    .catch((err) => {
+      throw new Error(err.message);
+    });
+
+  const user = await User.findOneAndUpdate(
+    { _id },
+    {
+      avatarURL: `/avatars/${filename} `,
+    },
+    { new: true }
+  );
+  if (!user) {
+    return res.status(401).json({ message: "Not authorized" });
+  }
+  return res.status(200).json({ data: { avatarURL: user.avatarURL } });
+};
+
 module.exports = {
   register,
   login,
   logout,
   current,
   updateSubscriptionUser,
+  updateAvatar,
 };

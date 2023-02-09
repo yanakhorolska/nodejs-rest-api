@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const { asyncWrapper } = require("../../helpers/apiHelpers");
 
+const { uploadMiddleware } = require("../../middlewares/uploadAvatar");
 const {
   authUserValidation,
   updateSubscriptionValidation,
@@ -15,6 +16,7 @@ const {
   logout,
   current,
   updateSubscriptionUser,
+  updateAvatar,
 } = require("../../controllers/usersController");
 
 const { authMiddleware } = require("../../middlewares/authMiddleware");
@@ -30,6 +32,13 @@ router.post("/login", validationBody(authUserValidation), asyncWrapper(login));
 router.post("/logout", authMiddleware, asyncWrapper(logout));
 
 router.get("/current", authMiddleware, asyncWrapper(current));
+
+router.patch(
+  "/avatars",
+  authMiddleware,
+  uploadMiddleware.single("avatar"),
+  asyncWrapper(updateAvatar)
+);
 
 router.patch(
   "/subscription",

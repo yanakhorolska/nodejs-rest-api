@@ -3,11 +3,11 @@ const dotenv = require("dotenv");
 dotenv.config();
 
 const authMiddleware = async (req, res, next) => {
-  // eslint-disable-next-line no-unused-vars
-  const [tokenType, token] = req.headers.authorization.split(" ");
+  const authHeader = req.headers.authorization || "";
+  const [type, token] = authHeader.split(" ");
 
-  if (!token) {
-    res.status(401).json({ message: "Not authorized" });
+  if (type !== "Bearer" || !token) {
+    return res.status(401).json({ message: "Not authorized" });
   }
 
   try {
